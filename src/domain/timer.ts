@@ -10,6 +10,7 @@ export type TimerAction =
   | { type: 'start' }
   | { type: 'pause' }
   | { type: 'tick' }
+  | { type: 'elapse'; seconds: number }
   | { type: 'reset'; seconds: number }
   | { type: 'setDuration'; seconds: number }
 
@@ -56,6 +57,30 @@ export function timerReducer(state: TimerState, action: TimerAction): TimerState
       }
 
       const nextSeconds = state.remainingSeconds - 1
+      if (nextSeconds <= 0) {
+        return {
+          ...state,
+          remainingSeconds: 0,
+          status: 'completed',
+        }
+      }
+
+      return {
+        ...state,
+        remainingSeconds: nextSeconds,
+      }
+    }
+    case 'elapse': {
+      if (state.status !== 'running') {
+        return state
+      }
+
+      const elapsed = Math.max(0, Math.floor(action.seconds))
+      if (elapsed === 0) {
+        return state
+      }
+
+      const nextSeconds = state.remainingSeconds - elapsed
       if (nextSeconds <= 0) {
         return {
           ...state,

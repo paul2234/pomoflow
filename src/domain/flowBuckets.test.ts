@@ -6,6 +6,7 @@ function makeFlow(id: string, createdAt: string): Flow {
     id,
     createdAt,
     updatedAt: createdAt,
+    goal: '',
     contentHtml: `<p>${id}</p>`,
     tags: [],
     session: {

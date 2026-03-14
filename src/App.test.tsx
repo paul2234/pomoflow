@@ -6,7 +6,7 @@ describe('App', () => {
   it('renders timers and editor controls', () => {
     render(<App />)
 
-    expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument()
+    expect(screen.getByPlaceholderText(/my goal for this flow is/i)).toBeInTheDocument()
     expect(screen.getByRole('tab', { name: /focus/i })).toBeInTheDocument()
     expect(screen.getByRole('tab', { name: /break/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /start timer/i })).toBeInTheDocument()

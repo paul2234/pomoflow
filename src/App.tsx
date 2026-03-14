@@ -18,7 +18,6 @@ type TimerMode = 'focus' | 'break'
 function App() {
   const [initialFlowState] = useState(getInitialFlowState)
   const [now, setNow] = useState(() => new Date())
-  const [titleTime, setTitleTime] = useState(() => new Date())
   const [flows, setFlows] = useState<Flow[]>(initialFlowState.flows)
   const [activeFlowId, setActiveFlowId] = useState<string | null>(initialFlowState.activeFlowId)
   const [focusMinutes, setFocusMinutes] = useState(DEFAULT_FOCUS_MINUTES)
@@ -37,6 +36,7 @@ function App() {
   const editorRef = useRef<HTMLDivElement | null>(null)
   const hasHandledCompletion = useRef(false)
   const lastHydratedFlowId = useRef<string | null>(null)
+  const lastTickAtRef = useRef<number | null>(null)
 
   const activeFlow = flows.find((flow) => flow.id === activeFlowId) ?? null
   const historyTree = useMemo(() => buildFlowHierarchy(flows), [flows])
@@ -58,9 +58,18 @@ function App() {
   }, [])
 
   useEffect(() => {
+    lastTickAtRef.current = Date.now()
+
     const intervalId = window.setInterval(() => {
-      setNow(new Date())
-      dispatchTimer({ type: 'tick' })
+      const currentMs = Date.now()
+      const previousMs = lastTickAtRef.current ?? currentMs
+      const elapsedSeconds = Math.floor((currentMs - previousMs) / 1000)
+      lastTickAtRef.current = currentMs
+
+      setNow(new Date(currentMs))
+      if (elapsedSeconds > 0) {
+        dispatchTimer({ type: 'elapse', seconds: elapsedSeconds })
+      }
     }, 1000)
 
     return () => {
@@ -224,6 +233,24 @@ function App() {
     window.open(href, '_blank', 'noopener,noreferrer')
   }
 
+  function onGoalChange(goal: string): void {
+    if (!activeFlowId) {
+      return
+    }
+
+    setFlows((currentFlows) =>
+      currentFlows.map((flow) =>
+        flow.id === activeFlowId
+          ? {
+              ...flow,
+              goal,
+              updatedAt: new Date().toISOString(),
+            }
+          : flow,
+      ),
+    )
+  }
+
   function addFlowEntry(): Flow {
     const nextFlow = createFlow()
     setFlows((current) => [nextFlow, ...current])
@@ -239,6 +266,12 @@ function App() {
     return nextFlow
   }
 
+  function startNewFlow(): void {
+    addFlowEntry()
+    setTimerMode('focus')
+    dispatchTimer({ type: 'reset', seconds: focusMinutes * 60 })
+  }
+
   function startFocusFlow(): void {
     if (timer.status === 'running') {
       return
@@ -247,7 +280,6 @@ function App() {
     const nextSeconds = timerMode === 'focus' ? focusMinutes * 60 : breakMinutes * 60
 
     if (timerMode === 'focus') {
-      setTitleTime(new Date())
       addFlowEntry()
     }
 
@@ -331,8 +363,23 @@ function App() {
           </button>
 
           <header className="panel header-panel">
-            <div>
-              <h1>{formatTitleDateTime(titleTime)}</h1>
+            <button
+              type="button"
+              className="new-flow-btn"
+              onClick={startNewFlow}
+              aria-label="Start a new flow"
+              title="Start a new flow"
+            >
+              +
+            </button>
+            <div className="header-content">
+              <input
+                className="goal-input"
+                aria-label="Flow goal"
+                placeholder="My goal for this flow is..."
+                value={activeFlow?.goal ?? ''}
+                onChange={(event) => onGoalChange(event.target.value)}
+              />
               <p className="clock" aria-live="polite">
                 {formatNow(now)}
               </p>
@@ -461,6 +508,7 @@ function TreeNode({ node, expandedKeys, activeFlowId, onToggle, onSelectFlow }: 
           type="button"
           className={isActive ? 'tree-item active-flow' : 'tree-item'}
           onClick={() => node.flowId && onSelectFlow(node.flowId)}
+          title={node.label}
         >
           {node.label}
         </button>
@@ -501,6 +549,7 @@ function createFlow(): Flow {
     id: generateFlowId(),
     createdAt: timestamp,
     updatedAt: timestamp,
+    goal: '',
     contentHtml: '',
     tags: [],
     session: {
@@ -545,16 +594,6 @@ function formatNow(date: Date): string {
     hour: 'numeric',
     minute: '2-digit',
     second: '2-digit',
-  }).format(date)
-}
-
-function formatTitleDateTime(date: Date): string {
-  return new Intl.DateTimeFormat(undefined, {
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
   }).format(date)
 }
 

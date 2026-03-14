@@ -29,4 +29,17 @@ describe('timerReducer', () => {
     expect(state.totalSeconds).toBe(120)
     expect(state.remainingSeconds).toBe(120)
   })
+
+  it('catches up when multiple seconds elapse', () => {
+    let state = createTimerState(300)
+    state = timerReducer(state, { type: 'start' })
+    state = timerReducer(state, { type: 'elapse', seconds: 90 })
+
+    expect(state.remainingSeconds).toBe(210)
+    expect(state.status).toBe('running')
+
+    state = timerReducer(state, { type: 'elapse', seconds: 250 })
+    expect(state.remainingSeconds).toBe(0)
+    expect(state.status).toBe('completed')
+  })
 })

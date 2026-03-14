@@ -86,10 +86,7 @@ export function buildFlowHierarchy(flows: Flow[]): FlowHierarchyNode[] {
 
     dayNode.children.push({
       key: `flow-${flow.id}`,
-      label: new Intl.DateTimeFormat(undefined, {
-        hour: 'numeric',
-        minute: '2-digit',
-      }).format(date),
+      label: getFlowNodeLabel(flow, date),
       kind: 'flow',
       flowId: flow.id,
       children: [],
@@ -105,4 +102,18 @@ export function getFlowPathKeys(flow: Flow): string[] {
   const monthKey = `${yearKey}-month-${date.getMonth()}`
   const dayKey = `${monthKey}-day-${date.getDate()}`
   return [yearKey, monthKey, dayKey]
+}
+
+function getFlowNodeLabel(flow: Flow, date: Date): string {
+  const timeLabel = new Intl.DateTimeFormat(undefined, {
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(date)
+  const goal = flow.goal.trim()
+
+  if (!goal) {
+    return timeLabel
+  }
+
+  return `${timeLabel} - ${goal}`
 }

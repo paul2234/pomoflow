@@ -8,6 +8,7 @@ export interface Flow {
   id: string
   createdAt: string
   updatedAt: string
+  goal: string
   contentHtml: string
   tags: string[]
   session: SessionMetadata

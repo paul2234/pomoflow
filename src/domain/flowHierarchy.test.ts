@@ -6,6 +6,7 @@ function makeFlow(id: string, createdAt: string): Flow {
     id,
     createdAt,
     updatedAt: createdAt,
+    goal: `goal-${id}`,
     contentHtml: `<p>${id}</p>`,
     tags: [],
     session: {
@@ -32,5 +33,6 @@ describe('buildFlowHierarchy', () => {
     expect(tree[0].children[0].kind).toBe('month')
     expect(tree[0].children[0].children[0].kind).toBe('day')
     expect(tree[0].children[0].children[0].children[0].kind).toBe('flow')
+    expect(tree[0].children[0].children[0].children[0].label).toContain('goal')
   })
 })
